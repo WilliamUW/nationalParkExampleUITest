@@ -1,0 +1,249 @@
+import React from "react";
+// import moment from "moment";
+
+import AppSearchAPIConnector from "@elastic/search-ui-app-search-connector";
+
+import {
+  ErrorBoundary,
+  Facet,
+  SearchProvider,
+  SearchBox,
+  Results,
+  PagingInfo,
+  ResultsPerPage,
+  Paging,
+  Sorting,
+  WithSearch
+} from "@elastic/react-search-ui";
+import {
+  BooleanFacet,
+  Layout,
+  SingleSelectFacet,
+  SingleLinksFacet
+} from "@elastic/react-search-ui-views";
+import "@elastic/react-search-ui-views/lib/styles/styles.css";
+
+const SORT_OPTIONS = [
+  {
+    name: "Relevance",
+    value: []
+  },
+  {
+    name: "Timestamp Ascending",
+    value: [
+      {
+        field: "0timestamp",
+        direction: "asc"
+      }
+    ]
+  },
+  {
+    name: "State",
+    value: [
+      {
+        field: "states",
+        direction: "asc"
+      }
+    ]
+  },
+  {
+    name: "State -> Title",
+    value: [
+      {
+        field: "states",
+        direction: "asc"
+      },
+      {
+        field: "title",
+        direction: "asc"
+      }
+    ]
+  },
+  {
+    name: "Heritage Site -> State -> Title",
+    value: [
+      {
+        field: "world_heritage_site",
+        direction: "asc"
+      },
+      {
+        field: "states",
+        direction: "asc"
+      },
+      {
+        field: "title",
+        direction: "asc"
+      }
+    ]
+  }
+];
+
+const connector = new AppSearchAPIConnector({
+  searchKey: "search-eao9b1hkyzoycyzthi6qci8m",
+  engineName: "test2",
+  hostIdentifier: "",
+  endpointBase: "https://email-search-deployment.ent.eu-west-1.aws.found.io"
+});
+
+const config = {
+  alwaysSearchOnInitialLoad: true,
+  searchQuery: {
+    result_fields: {
+      id: { raw: {} },
+      "0body_plain": {
+        snippet: {
+          size: 100,
+          fallback: true
+        }
+      },
+      "0subject": { raw: {} },
+      "0from": { raw: {} }
+    },
+    disjunctiveFacets: [],
+
+    facets: {
+      "0from": { type: "value", size: 10 },
+      "0subject": { type: "value" }
+      /*
+      acres: {
+        type: "range",
+        ranges: [
+          { from: -1, name: "Any" },
+          { from: 0, to: 1000, name: "Small" },
+          { from: 1001, to: 100000, name: "Medium" },
+          { from: 100001, name: "Large" }
+        ]
+        
+      },
+      
+      location: {
+        // San Francisco. In the future, make this the user's current position
+        center: "37.7749, -122.4194",
+        type: "range",
+        unit: "mi",
+        ranges: [
+          { from: 0, to: 100, name: "Nearby" },
+          { from: 100, to: 500, name: "A longer drive" },
+          { from: 500, name: "Perhaps fly?" }
+        ]
+      },
+      date_established: {
+        type: "range",
+
+        ranges: [
+          {
+            from: moment().subtract(50, "years").toISOString(),
+            name: "Within the last 50 years"
+          },
+          {
+            from: moment().subtract(100, "years").toISOString(),
+            to: moment().subtract(50, "years").toISOString(),
+            name: "50 - 100 years ago"
+          },
+          {
+            to: moment().subtract(100, "years").toISOString(),
+            name: "More than 100 years ago"
+          }
+        ]
+      },
+      visitors: {
+        type: "range",
+        ranges: [
+          { from: 0, to: 10000, name: "0 - 10000" },
+          { from: 10001, to: 100000, name: "10001 - 100000" },
+          { from: 100001, to: 500000, name: "100001 - 500000" },
+          { from: 500001, to: 1000000, name: "500001 - 1000000" },
+          { from: 1000001, to: 5000000, name: "1000001 - 5000000" },
+          { from: 5000001, to: 10000000, name: "5000001 - 10000000" },
+          { from: 10000001, name: "10000001+" }
+        ]
+      }
+      */
+    }
+  },
+  autocompleteQuery: {
+    results: {
+      resultsPerPage: 5,
+      result_fields: {
+        "0subject": {
+          snippet: {
+            size: 100,
+            fallback: true
+          }
+        }
+      }
+    },
+    suggestions: {
+      types: {
+        documents: {
+          fields: ["0subject", "0body_plain"]
+        }
+      },
+      size: 4
+    }
+  },
+  apiConnector: connector
+};
+
+export default function App() {
+  return (
+    <SearchProvider config={config}>
+      <WithSearch mapContextToProps={({ wasSearched }) => ({ wasSearched })}>
+        {({ wasSearched }) => {
+          return (
+            <div className="App">
+              <ErrorBoundary>
+                <Layout
+                  header={
+                    <SearchBox
+                      autocompleteMinimumCharacters={3}
+                      //searchAsYouType={true}
+                      autocompleteResults={{
+                        linkTarget: "_blank",
+                        sectionTitle: "Results",
+                        titleField: "0subject",
+                        urlField: "0subject",
+                        shouldTrackClickThrough: true,
+                        clickThroughTags: ["test"]
+                      }}
+                      autocompleteSuggestions={true}
+                      debounceLength={0}
+                    />
+                  }
+                  sideContent={
+                    <div>
+                      {wasSearched && (
+                        <Sorting label={"Sort by"} sortOptions={SORT_OPTIONS} />
+                      )}
+                      <Facet
+                        field="0from"
+                        label="0from"
+                        filterType="any"
+                        isFilterable={true}
+                      />
+                    </div>
+                  }
+                  bodyContent={
+                    <Results
+                      titleField="0subject"
+                      urlField="0subject"
+                      thumbnailField="image_url"
+                      shouldTrackClickThrough={true}
+                    />
+                  }
+                  bodyHeader={
+                    <React.Fragment>
+                      {wasSearched && <PagingInfo />}
+                      {wasSearched && <ResultsPerPage />}
+                    </React.Fragment>
+                  }
+                  bodyFooter={<Paging />}
+                />
+              </ErrorBoundary>
+            </div>
+          );
+        }}
+      </WithSearch>
+    </SearchProvider>
+  );
+}
